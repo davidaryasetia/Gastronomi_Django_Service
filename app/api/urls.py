@@ -6,6 +6,7 @@ from .controllers.file_upload_view import upload_architecture
 from .controllers.file_upload_view import upload_model
 from .controllers.file_download import file_download
 from .controllers import food
+from . import views
 
 urlpatterns = [
     path('hello', food.hello),
@@ -16,6 +17,7 @@ urlpatterns = [
     path('upload-architecture', upload_architecture ),
     path('upload-model', upload_model ),
     path('file-download/<str:file_name>/', file_download, name='file_download'),
+    path('simple-get/', views.simple_get_request, name='simple_get_request'),
 ]
 
 # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

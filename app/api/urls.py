@@ -22,7 +22,7 @@ urlpatterns = [
     path('file-download/<str:file_name>/', file_download, name='file_download'),
 
     # First Testing Request API Hello World & From Backend La
-    path('hai', HelloWorld, name='HelloWorld'), 
+    path('hai/', HelloWorld, name='HelloWorld'), 
     path('food/', data_food.food_data), 
 ]
 

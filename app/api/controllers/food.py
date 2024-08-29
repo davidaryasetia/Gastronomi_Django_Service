@@ -5,6 +5,7 @@ from PIL import Image
 from io import BytesIO
 from numpy import asarray
 from ..utils.architecture import siamese_architecture
+from django.views.decorators.csrf import csrf_exempt
 import os
 import base64
 import numpy as np
@@ -21,10 +22,12 @@ IMAGE_SHAPE = (224,224)
 def hello(request):
     return Response({'say':'hello'})
 
+# Test Request Post IMAGE
 
+@csrf_exempt
 @api_view(['POST'])
 def predict_with_data(request):
-    foods = requests.get(FOOD_HOST)
+    foods = requests.get(FOOD_HOST) #base 64 image
     siamese_model = siamese_architecture()
     cwd = os.getcwd()  
     siamese_model.load_weights(cwd+"/api/models/siamese_model.h5")

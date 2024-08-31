@@ -9,14 +9,10 @@ from .controllers import food
 
 # Testing Now
 from .controllers import testing
-
 urlpatterns = [
 
     # Food
     path('predict-data', food.predict_with_data),
-    # path('predict/', food.predict),
-    # path('multi-predict', food.multi_predict),
-
     path('file-upload', file_upload , name='file'),
     path('upload-architecture', upload_architecture ),
     path('upload-model', upload_model ),
@@ -25,5 +21,3 @@ urlpatterns = [
     # First Testing Request API Hello World & From Backend La
     path('hai/', testing.HelloWorld),
 ]
-
-# urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

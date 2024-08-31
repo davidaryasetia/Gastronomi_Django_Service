@@ -2,7 +2,6 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from PIL import Image
 from io import BytesIO
-from numpy import asarray
 from ..utils.architecture import siamese_architecture
 import os
 import numpy as np
@@ -11,11 +10,10 @@ import requests
 
 @api_view(['POST'])
 def predict_with_data(request):
+    
     url = 'http://gastronomy-backend.sindika.co.id/api/food'
     response = requests.get(url)
     api_data = response.json()
-
-    # efisiensi code
     foods = api_data['data']
 
     # Memuat model Siamese untuk melakukan predisi
@@ -41,10 +39,9 @@ def predict_with_data(request):
         description = food['description']
         story_historical_food = food['food_historical']
         ingredients = food['ingredients']
+        directions = food['directions']
         url_youtube = food['url_youtube']
         nutrition = food['nutrition']
-
-            
         img = read_image(photo_path)
         images.append(img)
 
@@ -56,6 +53,7 @@ def predict_with_data(request):
             'description' : description, 
             'story_historical_food' : story_historical_food, 
             'ingredients' : ingredients, 
+            'directions' : directions, 
             'url_youtube' : url_youtube, 
             'nutrition' : nutrition, 
         })

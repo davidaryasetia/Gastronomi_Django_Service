@@ -27,7 +27,6 @@ def hello(request):
 
 @api_view(['POST'])
 def predict_with_data(request):
-
     # menggunakan data contoh statis 
     foods = [
         {

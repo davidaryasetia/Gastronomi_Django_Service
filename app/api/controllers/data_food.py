@@ -11,7 +11,7 @@ HOST = os.getenv('HOST')
 # Testing Request Data Food From API Laravel Backend 
 @require_http_methods(["GET"])
 def food_data(request):
-    api_url = f'{HOST}/api/food/1'
+    api_url = f'{HOST}/api/food'
 
     try:
         response = requests.get(api_url)

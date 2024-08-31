@@ -1,5 +1,6 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from django.http import JsonResponse
 from datetime import datetime
 from PIL import Image
 from io import BytesIO
@@ -27,33 +28,19 @@ def hello(request):
 
 @api_view(['POST'])
 def predict_with_data(request):
-    # menggunakan data contoh statis 
-    foods = [
-        {
-            'picture' : "C:\\Users\\evane\\Documents\\Asset Project\\Food\\Ayam Taliwang\\Ayam Taliwang 1.jpg",
-            'name' : 'Ayam Taliwang', 
-            'foodCode' : 'F001', 
-            '_id' : '1'
-        }, 
-        {
-            'picture' : "C:\\Users\\evane\\Documents\\Asset Project\\Food\\Ayam Rarang\\ayam rarang1.jpg", 
-            'name' : 'Ayam Rarang', 
-            'foodCode' : 'F002',
-            '_id' : 'F002',
-        }, 
-        {
-            'picture' : "C:\\Users\\evane\\Documents\\Asset Project\\Food\Bebalung\\Bebalung1.jpeg", 
-            'name' : 'Bebalung', 
-            'foodCode' : 'F003',
-            '_id' : 'F002',
-        },
-        {
-            'picture' : "C:\\Users\\evane\\Documents\\Asset Project\\Food\\Plecik Kangkung\\plecik kangkung1.jpeg", 
-            'name' : 'Plecing Kangkung', 
-            'foodCode' : 'F004',
-            '_id' : 'F004',
-        }, 
-    ]
+    url = 'http://gastronomy-backend.sindika.co.id/api/food'
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        api_data = response.json()
+
+        if 'data' not in api_data: 
+            return JsonResponse({'error' : 'Invalid data format from API'}, status=500)
+        
+        foods = api_data['data']
+
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({'error' : str(e)}, status= 500)
 
     # Memuat model Siamese untuk melakukan predisi
     siamese_model = siamese_architecture()
@@ -73,16 +60,30 @@ def predict_with_data(request):
 
     for food in foods:
         # images.append(food['picture'][0])
-        image_path = food['picture']
-        img = read_image(image_path)
-        with open(image_path, 'rb') as img_file:
-            img = read_image(img_file)
-            images.append(img)
+        food_id = food['food_id']
+        photo_path = food['photo_path'] 
+        name = food['name']
+        category = food['category']
+        description = food['description']
+        story_historical_food = food['food_historical']
+        ingredients = food['ingredients']
+        url_youtube = food['url_youtube']
+        nutrition = food['nutrition']
 
-        labels.append({ # label image
-            'name' : food['name'],
-            'foodCode' : food['foodCode'],
-            '_id' : food['_id']
+            
+        img = read_image(photo_path)
+        images.append(img)
+
+        labels.append({
+            'food_id' : food_id, 
+            'photo_path' : photo_path, 
+            'name' : name, 
+            'category' : category, 
+            'description' : description, 
+            'story_historical_food' : story_historical_food, 
+            'ingredients' : ingredients, 
+            'url_youtube' : url_youtube, 
+            'nutrition' : nutrition, 
         })
 
     # Membuat array gambar untuk input model
@@ -105,76 +106,15 @@ def predict_with_data(request):
 
     return Response(highest_predict)
 
-def read_image(image_file):
-    image = Image.open(image_file)
-    image = image.resize(IMAGE_SHAPE)
+# Fungsi read_image file 
+def read_image(image_input):
+    if isinstance(image_input, str) and (image_input.startswith('http://') or image_input.startswith('https://')):
+        response = requests.get(image_input)
+        response.raise_for_status()
+        image = Image.open(BytesIO(response.content))
+    else: 
+        image = Image.open(image_input)
+
+    image = image.resize((224, 224))
     img_arr = np.asarray(image)
     return img_arr.astype('float32')
-
-
-
-@api_view(['POST'])
-def multi_predict(request):
-    siamese_model = siamese_architecture()
-    cwd = os.getcwd()  
-    siamese_model.load_weights(cwd+"/app/api/models/siamese_model.h5")
-    
-    imgQuery = request.data['query']
-    images = request.data['images']
-
-    imgArr1 = get_duplicate_array_image(imgQuery, len(images))
-    imgArr2 = get_multi_array_image(images)
-
-    result = siamese_model.predict([imgArr1,imgArr2])
-
-    return Response(result)
-
-@api_view(['POST'])
-def predict(request):
-    siamese_model = siamese_architecture()
-    cwd = os.getcwd()  
-    siamese_model.load_weights(cwd+"/app/api/models/siamese_model.h5")
-
-    imgArr1 = get_array_image(request.data['image1'])
-    imgArr2 = get_array_image(request.data['image2'])
-
-    result = siamese_model.predict([imgArr1,imgArr2])
-
-    return Response({'predict':result[0][0]})
-
-def get_multi_array_image_link(multi_images):
-    x = []
-    for base in multi_images:
-        response = requests.get(HOST+base)
-        image = Image.open(BytesIO(response.content))
-        image = image.resize(IMAGE_SHAPE)
-        imgArr = asarray(image)
-        x.append(imgArr)
-    return np.array(x).astype('float32')  
-
-def get_multi_array_image(multi_base64):
-    x = []
-    for base in multi_base64:
-        image = Image.open(BytesIO(base64.b64decode(base)))
-        image = image.resize(IMAGE_SHAPE)
-        imgArr = asarray(image)
-        x.append(imgArr)
-    return np.array(x).astype('float32')  
-
-def get_duplicate_array_image(str_base64, num):
-    x = []
-    for k in range(num):
-        image = Image.open(BytesIO(base64.b64decode(str_base64)))
-        image = image.resize(IMAGE_SHAPE)
-        imgArr = asarray(image)
-        x.append(imgArr)
-    return np.array(x).astype('float32')  
-
-def get_array_image(str_base64):
-    x = []
-    image = Image.open(BytesIO(base64.b64decode(str_base64)))
-    image = image.resize(IMAGE_SHAPE)
-    imgArr = asarray(image)
-    x.append(imgArr)
-
-    return np.array(x).astype('float32')   

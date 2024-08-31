@@ -13,7 +13,6 @@ from .controllers import testing
 urlpatterns = [
 
     # Food
-    path('hello', food.hello, name='hello'),
     path('predict-data', food.predict_with_data),
     # path('predict/', food.predict),
     # path('multi-predict', food.multi_predict),

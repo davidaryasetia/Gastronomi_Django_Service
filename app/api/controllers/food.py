@@ -24,53 +24,101 @@ def hello(request):
 
 # Test Request Post IMAGE
 
-@csrf_exempt
+
 @api_view(['POST'])
 def predict_with_data(request):
-    foods = requests.get(FOOD_HOST) #base 64 image
+
+    # menggunakan data contoh statis 
+    foods = [
+        {
+            'picture' : "C:\\Users\\evane\\Documents\\Asset Project\\Food\\Ayam Taliwang\\Ayam Taliwang 1.jpg",
+            'name' : 'Ayam Taliwang', 
+            'foodCode' : 'F001', 
+            '_id' : '1'
+        }, 
+        {
+            'picture' : "C:\\Users\\evane\\Documents\\Asset Project\\Food\\Ayam Rarang\\ayam rarang1.jpg", 
+            'name' : 'Ayam Rarang', 
+            'foodCode' : 'F002',
+            '_id' : 'F002',
+        }, 
+        {
+            'picture' : "C:\\Users\\evane\\Documents\\Asset Project\\Food\Bebalung\\Bebalung1.jpeg", 
+            'name' : 'Bebalung', 
+            'foodCode' : 'F003',
+            '_id' : 'F002',
+        },
+        {
+            'picture' : "C:\\Users\\evane\\Documents\\Asset Project\\Food\\Plecik Kangkung\\plecik kangkung1.jpeg", 
+            'name' : 'Plecing Kangkung', 
+            'foodCode' : 'F004',
+            '_id' : 'F004',
+        }, 
+    ]
+
+    # Memuat model Siamese untuk melakukan predisi
     siamese_model = siamese_architecture()
     cwd = os.getcwd()  
-    siamese_model.load_weights(cwd+"/api/models/siamese_model.h5")
+    siamese_model.load_weights(cwd+"/app/api/models/siamese_model.h5")
+
+    # Kondisi jika kita tidak memasukkan sebuah image 
+    if 'query' not in request.FILES:
+        return Response({'error' : 'No query image uploaded'}, status=400)
     
-    imgQuery = request.data['query']
+    # membaca gambar dari parameter query
+    query_image_file = request.FILES['query']
+    imgQuery = read_image(query_image_file)
+
     images = []
     labels = []
 
-    for food in foods.json():
-        # for picture in food['picture']:
-        #     images.append(picture)
-        #     labels.append({
-        #         'name' : food['name'],
-        #         'foodCode' : food['foodCode'],
-        #         '_id' : food['_id']
-        #     })
-        images.append(food['picture'][0])
-        labels.append({
+    for food in foods:
+        # images.append(food['picture'][0])
+        image_path = food['picture']
+        img = read_image(image_path)
+        with open(image_path, 'rb') as img_file:
+            img = read_image(img_file)
+            images.append(img)
+
+        labels.append({ # label image
             'name' : food['name'],
             'foodCode' : food['foodCode'],
             '_id' : food['_id']
         })
 
-    imgArr1 = get_duplicate_array_image(imgQuery, len(images))
-    imgArr2 = get_multi_array_image_link(images)
+    # Membuat array gambar untuk input model
+    imgArr1 = np.array([imgQuery] * len(images)) # Menggandakan gambar query untuk setiap gambar referensi
+    imgArr2 = np.array(images) #gambar refrensi
 
     results = siamese_model.predict([imgArr1,imgArr2])
 
     predicts = []
 
+    # Iterasi hasil prediksi dan menyimpannya bersama label 
     for i in range(len(results)):
         predicts.append({
             'label': labels[i],
-            'predict': results[i]
+            'predict':float(results[i])
         })
 
-    return Response(predicts)
+    # Mengambil hasil prediksi tertinggi berdasarkan nilai
+    highest_predict = max(predicts, key=lambda x: x['predict'])
+
+    return Response(highest_predict)
+
+def read_image(image_file):
+    image = Image.open(image_file)
+    image = image.resize(IMAGE_SHAPE)
+    img_arr = np.asarray(image)
+    return img_arr.astype('float32')
+
+
 
 @api_view(['POST'])
 def multi_predict(request):
     siamese_model = siamese_architecture()
     cwd = os.getcwd()  
-    siamese_model.load_weights(cwd+"/api/models/siamese_model.h5")
+    siamese_model.load_weights(cwd+"/app/api/models/siamese_model.h5")
     
     imgQuery = request.data['query']
     images = request.data['images']
@@ -86,7 +134,7 @@ def multi_predict(request):
 def predict(request):
     siamese_model = siamese_architecture()
     cwd = os.getcwd()  
-    siamese_model.load_weights(cwd+"/api/models/siamese_model.h5")
+    siamese_model.load_weights(cwd+"/app/api/models/siamese_model.h5")
 
     imgArr1 = get_array_image(request.data['image1'])
     imgArr2 = get_array_image(request.data['image2'])
